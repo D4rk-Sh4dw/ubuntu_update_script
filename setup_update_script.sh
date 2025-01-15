@@ -6,7 +6,7 @@ RESET="\033[0m"
 
 # Pfad und GitHub-URL
 SCRIPT_PATH="/usr/local/bin/ubuntu_update.sh"
-GITHUB_URL="https://raw.githubusercontent.com/USERNAME/REPO/main/ubuntu_update.sh"
+GITHUB_URL="https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/main/ubuntu_update.sh"
 
 # Funktion: Cron-Zeit abfragen
 function ask_cron_time() {
