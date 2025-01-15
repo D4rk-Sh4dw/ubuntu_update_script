@@ -57,16 +57,16 @@ case "$UBUNTU_VERSION" in
 esac
 
 # Füge MongoDB 8.0 Repository für die entsprechende Ubuntu-Version hinzu
-log "Füge MongoDB 8.0 Repository für $UBUNTU_CODENAME hinzu..."
+log "Füge MongoDB 7.0 Repository für $UBUNTU_CODENAME hinzu..."
 
 # Installiere gnupg und curl, falls nicht installiert
 sudo apt-get install -y gnupg curl >> "$LOG_FILE" 2>&1
 
 # Lade den MongoDB 8.0 GPG-Schlüssel herunter und füge ihn dem Keyring hinzu
-curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor >> "$LOG_FILE" 2>&1
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor >> "$LOG_FILE" 2>&1
 
 # Füge das MongoDB 8.0 Repository hinzu
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list >> "$LOG_FILE" 2>&1
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list >> "$LOG_FILE" 2>&1
 
 # Führe apt update aus, um die neuen Repositories zu laden
 log "Aktualisiere apt Paketlisten..."
