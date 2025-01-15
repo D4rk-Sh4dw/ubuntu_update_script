@@ -3,7 +3,7 @@
 herunterladen.
 
 2. Skript mit
-	"chmod +x setup_update_script.sh"
+	"sudo chmod +x setup_update_script.sh"
 ausführbar machen.
 
 4. Skript mit
