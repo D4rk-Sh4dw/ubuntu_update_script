@@ -2,11 +2,12 @@
 
 # Farben für die Ausgabe
 GREEN="\033[0;32m"
+RED="\033[0;31m"
 RESET="\033[0m"
 
 # Pfad und GitHub-URL
 SCRIPT_PATH="/usr/local/bin/ubuntu_update.sh"
-GITHUB_URL="https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/refs/heads/main/ubuntu_update.sh"
+GITHUB_URL="https://raw.githubusercontent.com/USERNAME/REPO/main/ubuntu_update.sh"
 
 # Funktion: Cron-Zeit abfragen
 function ask_cron_time() {
@@ -17,6 +18,23 @@ function ask_cron_time() {
     read -p "Monat (1-12, * für jeden Monat): " MONTH
     read -p "Wochentag (0-7, wobei 0 und 7 für Sonntag stehen, * für jeden Tag): " WEEKDAY
 }
+
+# Prüfen, ob cron installiert ist
+echo -e "${GREEN}Prüfe, ob cron installiert ist...${RESET}"
+if ! dpkg -l | grep -q "^ii.*cron"; then
+    echo -e "${RED}cron ist nicht installiert. Installiere cron...${RESET}"
+    sudo apt update
+    sudo apt install -y cron
+    echo -e "${GREEN}cron wurde erfolgreich installiert.${RESET}"
+else
+    echo -e "${GREEN}cron ist bereits installiert.${RESET}"
+fi
+
+# Sicherstellen, dass cron läuft
+echo -e "${GREEN}Stelle sicher, dass der cron-Dienst läuft...${RESET}"
+sudo systemctl start cron
+sudo systemctl enable cron
+echo -e "${GREEN}cron-Dienst ist gestartet und aktiviert.${RESET}"
 
 # Skript herunterladen
 echo -e "${GREEN}Herunterladen des Skripts von GitHub...${RESET}"
