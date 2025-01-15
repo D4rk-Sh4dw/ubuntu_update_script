@@ -6,8 +6,8 @@ RED="\033[0;31m"
 RESET="\033[0m"
 
 # Pfad und GitHub-URL
-SCRIPT_PATH="/usr/local/bin/ubuntu_update_m.sh"
-GITHUB_URL="https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/main/ubuntu_update.sh"
+SCRIPT_PATH="/usr/local/bin/ubuntu_update_script_m.sh"
+GITHUB_URL="https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/main/ubuntu_update_script_m.sh"
 
 # Funktion: Cron-Zeit abfragen
 function ask_cron_time() {
