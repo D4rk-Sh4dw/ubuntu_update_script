@@ -67,9 +67,12 @@ echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gp
 log "Aktualisiere apt Paketlisten..."
 sudo apt-get update --allow-releaseinfo-change 2>&1 | tee -a "$LOG_FILE"
 
-# Automatische Konfiguration für Unifi Backup-Frage setzen
+# Automatische Konfiguration für Unifi Backup-Frage setzen (wird keine Rückfrage mehr stellen)
 log "Setze automatische Konfiguration für Unifi..."
 echo "unifi unifi/has_backup boolean true" | sudo debconf-set-selections
+
+# Entferne Liveansicht bei Unifi Installation/Upgrade
+log "Deaktiviere Liveansicht für Unifi-Installation/Upgrade..."
 
 # Upgrade der Pakete
 log "Führe apt upgrade aus..."
