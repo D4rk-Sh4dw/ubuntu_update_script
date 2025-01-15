@@ -2,39 +2,26 @@
 
 LOG_FILE="/var/log/update_script.log"
 
-# Logging Funktion
+# Logging Funktion mit Konsolenausgabe
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
 # System reinigen (Autoremove, Clean)
 log "Starte Systemreinigung mit apt autoremove und apt clean..."
-sudo apt autoremove -y >> "$LOG_FILE" 2>&1
-sudo apt clean >> "$LOG_FILE" 2>&1
+sudo apt autoremove -y 2>&1 | tee -a "$LOG_FILE"
+sudo apt clean 2>&1 | tee -a "$LOG_FILE"
 
 # Entfernen der älteren MongoDB-Versionen aus den Repositories
 log "Entferne MongoDB-Versionen älter als 8 aus den Repositories..."
 
-# Wenn eine ältere Version (z. B. 3.6 oder 4.x) in der Repository-Liste existiert, entfernen
-if [ -f /etc/apt/sources.list.d/mongodb-org-3.6.list ]; then
-    sudo rm /etc/apt/sources.list.d/mongodb-org-3.6.list
-    log "Entferntes Repository für MongoDB 3.6."
-fi
-
-if [ -f /etc/apt/sources.list.d/mongodb-org-4.0.list ]; then
-    sudo rm /etc/apt/sources.list.d/mongodb-org-4.0.list
-    log "Entferntes Repository für MongoDB 4.0."
-fi
-
-if [ -f /etc/apt/sources.list.d/mongodb-org-4.2.list ]; then
-    sudo rm /etc/apt/sources.list.d/mongodb-org-4.2.list
-    log "Entferntes Repository für MongoDB 4.2."
-fi
-
-if [ -f /etc/apt/sources.list.d/mongodb-org-4.4.list ]; then
-    sudo rm /etc/apt/sources.list.d/mongodb-org-4.4.list
-    log "Entferntes Repository für MongoDB 4.4."
-fi
+# Überprüfen und Entfernen älterer MongoDB-Repositories
+for version in 3.6 4.0 4.2 4.4; do
+    if [ -f "/etc/apt/sources.list.d/mongodb-org-${version}.list" ]; then
+        sudo rm "/etc/apt/sources.list.d/mongodb-org-${version}.list"
+        log "Entferntes Repository für MongoDB ${version}."
+    fi
+done
 
 # Ubuntu-Version ermitteln
 UBUNTU_VERSION=$(lsb_release -c | awk '{print $2}')
@@ -56,31 +43,31 @@ case "$UBUNTU_VERSION" in
         ;;
 esac
 
-# Füge MongoDB 8.0 Repository für die entsprechende Ubuntu-Version hinzu
+# Füge MongoDB 7.0 Repository für die entsprechende Ubuntu-Version hinzu
 log "Füge MongoDB 7.0 Repository für $UBUNTU_CODENAME hinzu..."
 
 # Installiere gnupg und curl, falls nicht installiert
-sudo apt-get install -y gnupg curl >> "$LOG_FILE" 2>&1
+log "Installiere notwendige Pakete: gnupg, curl..."
+sudo apt-get install -y gnupg curl 2>&1 | tee -a "$LOG_FILE"
 
-# Lade den MongoDB 8.0 GPG-Schlüssel herunter und füge ihn dem Keyring hinzu
-curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor >> "$LOG_FILE" 2>&1
+# Lade den MongoDB 7.0 GPG-Schlüssel herunter und füge ihn dem Keyring hinzu
+log "Lade MongoDB 7.0 GPG-Schlüssel herunter..."
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor 2>&1 | tee -a "$LOG_FILE"
 
-# Füge das MongoDB 8.0 Repository hinzu
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list >> "$LOG_FILE" 2>&1
+# Füge das MongoDB 7.0 Repository hinzu
+log "Füge das MongoDB 7.0 Repository hinzu..."
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list 2>&1 | tee -a "$LOG_FILE"
 
-# Führe apt update aus, um die neuen Repositories zu laden
+# Aktualisiere apt Paketlisten
 log "Aktualisiere apt Paketlisten..."
-sudo apt-get update >> "$LOG_FILE" 2>&1
+sudo apt-get update 2>&1 | tee -a "$LOG_FILE"
 
-# Aktualisierung der Paketlisten und Upgrade der Pakete
+# System aktualisieren
 log "Führe apt update aus..."
-sudo apt update -y >> "$LOG_FILE" 2>&1
+sudo apt update -y 2>&1 | tee -a "$LOG_FILE"
 
 log "Führe apt upgrade aus..."
-sudo apt upgrade -y >> "$LOG_FILE" 2>&1
+sudo apt upgrade -y 2>&1 | tee -a "$LOG_FILE"
 
-# Optional: MongoDB 8.0 installieren (falls gewünscht)
-# log "Installiere MongoDB 8.0..."
-# sudo apt-get install -y mongodb-org >> "$LOG_FILE" 2>&1
-
+# Abschlussmeldung
 log "Update-Skript abgeschlossen!"
