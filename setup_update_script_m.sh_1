@@ -1,81 +1,94 @@
 #!/bin/bash
 
-# Farben für die Ausgabe
-GREEN="\033[0;32m"
-RED="\033[0;31m"
-RESET="\033[0m"
+LOG_FILE="/var/log/update_script.log"
 
-# Pfad und GitHub-URL
-SCRIPT_PATH="/usr/local/bin/ubuntu_update_script_m.sh"
-GITHUB_URL="https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/main/ubuntu_update_script_m.sh"
-
-# Funktion: Cron-Zeit abfragen
-function ask_cron_time() {
-    echo "Bitte geben Sie die Cron-Zeitparameter an:"
-    read -p "Minute (0-59): " MINUTE
-    read -p "Stunde (0-23): " HOUR
-    read -p "Tag des Monats (1-31, * für jeden Tag): " DAY
-    read -p "Monat (1-12, * für jeden Monat): " MONTH
-    read -p "Wochentag (0-7, wobei 0 und 7 für Sonntag stehen, * für jeden Tag): " WEEKDAY
+# Logging Funktion mit Konsolenausgabe
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
-# System bereinigen
-echo -e "${GREEN}Führe apt clean aus, um den lokalen Paket-Cache zu bereinigen...${RESET}"
-sudo apt clean -y
+# Setze DEBIAN_FRONTEND, um Interaktivität zu deaktivieren
+export DEBIAN_FRONTEND=noninteractive
 
-echo -e "${GREEN}Führe apt autoremove aus, um nicht mehr benötigte Pakete zu entfernen...${RESET}"
-sudo apt autoremove -y
-
-# Prüfen, ob cron installiert ist
-echo -e "${GREEN}Prüfe, ob cron installiert ist...${RESET}"
-if ! dpkg -l | grep -q "^ii.*cron"; then
-    echo -e "${RED}cron ist nicht installiert. Installiere cron...${RESET}"
-    sudo apt update
-    sudo apt install -y cron
-    echo -e "${GREEN}cron wurde erfolgreich installiert.${RESET}"
+# Überprüfen und Beheben von dpkg-Problemen
+log "Überprüfen des dpkg-Status..."
+if ! sudo dpkg --audit; then
+    log "Probleme mit dpkg festgestellt. Führe 'dpkg --configure -a' aus..."
+    sudo dpkg --configure -a 2>&1 | tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then
+        log "Fehler beim Ausführen von 'dpkg --configure -a'. Lösche Lock-Dateien und versuche erneut..."
+        sudo rm -f /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+        sudo dpkg --configure -a 2>&1 | tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then
+            log "Fehler bleibt bestehen. Bitte manuell eingreifen."
+            exit 1
+        fi
+    fi
 else
-    echo -e "${GREEN}cron ist bereits installiert.${RESET}"
+    log "dpkg-Status ist in Ordnung."
 fi
 
-# Sicherstellen, dass cron läuft
-echo -e "${GREEN}Stelle sicher, dass der cron-Dienst läuft...${RESET}"
-sudo systemctl start cron
-sudo systemctl enable cron
-echo -e "${GREEN}cron-Dienst ist gestartet und aktiviert.${RESET}"
+# System reinigen (Autoremove, Clean)
+log "Starte Systemreinigung mit apt autoremove und apt clean..."
+sudo apt autoremove -y 2>&1 | tee -a "$LOG_FILE"
+sudo apt clean 2>&1 | tee -a "$LOG_FILE"
 
-# Skript herunterladen
-echo -e "${GREEN}Herunterladen des Skripts von GitHub...${RESET}"
-if wget -O "$SCRIPT_PATH" "$GITHUB_URL"; then
-    echo -e "${GREEN}Skript erfolgreich heruntergeladen nach $SCRIPT_PATH${RESET}"
+# Entfernen der älteren MongoDB-Versionen aus den Repositories
+log "Entferne ältere MongoDB-Repositories..."
+for VERSION in 3.6 4.0 4.2 4.4; do
+    if [ -f /etc/apt/sources.list.d/mongodb-org-$VERSION.list ]; then
+        sudo rm /etc/apt/sources.list.d/mongodb-org-$VERSION.list
+        log "Entferntes Repository für MongoDB $VERSION."
+    fi
+done
+
+# Ubuntu-Version ermitteln
+UBUNTU_VERSION=$(lsb_release -c | awk '{print $2}')
+log "Ermittelte Ubuntu-Version: $UBUNTU_VERSION"
+
+# Repository entsprechend der Ubuntu-Version anpassen
+case "$UBUNTU_VERSION" in
+    "focal" | "jammy")
+        UBUNTU_CODENAME="$UBUNTU_VERSION"
+        ;;
+    *)
+        log "Nicht unterstützte Ubuntu-Version: $UBUNTU_VERSION. Verwende 'focal' als Standard."
+        UBUNTU_CODENAME="focal"
+        ;;
+esac
+
+# Füge MongoDB 7.0 Repository hinzu
+log "Füge MongoDB 7.0 Repository für $UBUNTU_CODENAME hinzu..."
+sudo apt-get install -y gnupg curl 2>&1 | tee -a "$LOG_FILE"
+curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor 2>&1 | tee -a "$LOG_FILE"
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu $UBUNTU_CODENAME/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list 2>&1 | tee -a "$LOG_FILE"
+
+# Führe apt update aus, um die neuen Repositories zu laden
+log "Aktualisiere apt Paketlisten..."
+sudo apt-get update --allow-releaseinfo-change 2>&1 | tee -a "$LOG_FILE"
+
+# Automatische Konfiguration für Unifi Backup-Frage setzen (wird keine Rückfrage mehr stellen)
+log "Setze automatische Konfiguration für Unifi..."
+echo "unifi unifi/has_backup boolean true" | sudo debconf-set-selections
+
+# Entferne Liveansicht bei Unifi Installation/Upgrade
+log "Deaktiviere Liveansicht für Unifi-Installation/Upgrade..."
+
+# Upgrade der Pakete
+log "Führe apt upgrade aus..."
+sudo apt upgrade -y -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" 2>&1 | tee -a "$LOG_FILE"
+
+# Optional: MongoDB 7.0 installieren (falls nicht bereits vorhanden)
+log "Prüfe auf MongoDB 7.0 Installation..."
+if ! dpkg -l | grep -q "mongodb-org"; then
+    log "Installiere MongoDB 7.0..."
+    sudo apt-get install -y mongodb-org 2>&1 | tee -a "$LOG_FILE"
 else
-    echo -e "${RED}Fehler beim Herunterladen des Skripts!${RESET}"
-    exit 1
+    log "MongoDB 7.0 ist bereits installiert."
 fi
 
-# Skript ausführbar machen
-echo -e "${GREEN}Setze Berechtigungen...${RESET}"
-chmod +x "$SCRIPT_PATH"
-echo -e "${GREEN}Skript ist ausführbar.${RESET}"
+# Unifi-Upgrade prüfen und erzwingen
+log "Prüfe auf Unifi-Updates..."
+sudo apt-get install --only-upgrade -y unifi -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" 2>&1 | tee -a "$LOG_FILE"
 
-# Überprüfen, ob ein Cronjob bereits existiert
-EXISTING_CRONTAB=$(crontab -l 2>/dev/null | grep "$SCRIPT_PATH")
-if [[ -n "$EXISTING_CRONTAB" ]]; then
-    echo -e "${GREEN}Ein bestehender Cronjob für das Skript wurde gefunden:${RESET}"
-    echo "$EXISTING_CRONTAB"
-    echo -e "${GREEN}Der bestehende Cronjob wird aktualisiert.${RESET}"
-
-    # Bestehenden Cronjob entfernen
-    (crontab -l 2>/dev/null | grep -v "$SCRIPT_PATH") | crontab -
-else
-    echo -e "${GREEN}Kein bestehender Cronjob für das Skript gefunden.${RESET}"
-fi
-
-# Cron-Zeit abfragen
-ask_cron_time
-
-# Neuen/aktualisierten Cronjob hinzufügen
-CRON_JOB="$MINUTE $HOUR $DAY $MONTH $WEEKDAY $SCRIPT_PATH"
-(crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-
-echo -e "${GREEN}Cronjob wurde hinzugefügt oder aktualisiert:${RESET}"
-echo "$CRON_JOB"
+log "Update-Skript abgeschlossen!"
