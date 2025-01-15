@@ -8,7 +8,7 @@ echo "---------------------------" >> "$LOG_FILE"
 echo "$(date): Update gestartet" >> "$LOG_FILE"
 
 # Updates durchführen
-apt update >> "$LOG_FILE" 2>&1
+apt update -y >> "$LOG_FILE" 2>&1
 apt upgrade -y >> "$LOG_FILE" 2>&1
 
 # Überprüfen, ob ein Neustart erforderlich ist
