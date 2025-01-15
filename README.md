@@ -7,7 +7,7 @@ herunterladen.
 ausführbar machen.
 
 4. Skript mit
-	".\setup_update_script.sh"
+	"sudo ./setup_update_script.sh"
 ausführen.
 
 4. Die Abfragen beantworten.
