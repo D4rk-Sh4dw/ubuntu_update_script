@@ -1,5 +1,5 @@
 1.Skript mit
-	"wget https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/main/setup_ubuntu_update.sh"
+	"wget https://raw.githubusercontent.com/D4rk-Sh4dw/ubuntu_update_script/refs/heads/main/setup_update_script.sh"
 herunterladen.
 
 2. Skript mit
