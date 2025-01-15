@@ -15,4 +15,4 @@ ausführen.
 
 Hinweis:
 
-Logs der Updates können mit cat /var/log/ubuntu_update.log angezeigt oder nano /var/log/ubuntu_update.log werden.
+Logs der Updates können mit "cat /var/log/ubuntu_update.log" angezeigt oder nano "/var/log/ubuntu_update.log" werden.
