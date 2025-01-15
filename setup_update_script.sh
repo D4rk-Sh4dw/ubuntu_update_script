@@ -50,12 +50,25 @@ echo -e "${GREEN}Setze Berechtigungen...${RESET}"
 chmod +x "$SCRIPT_PATH"
 echo -e "${GREEN}Skript ist ausführbar.${RESET}"
 
+# Überprüfen, ob ein Cronjob bereits existiert
+EXISTING_CRONTAB=$(crontab -l 2>/dev/null | grep "$SCRIPT_PATH")
+if [[ -n "$EXISTING_CRONTAB" ]]; then
+    echo -e "${GREEN}Ein bestehender Cronjob für das Skript wurde gefunden:${RESET}"
+    echo "$EXISTING_CRONTAB"
+    echo -e "${GREEN}Der bestehende Cronjob wird aktualisiert.${RESET}"
+
+    # Bestehenden Cronjob entfernen
+    (crontab -l 2>/dev/null | grep -v "$SCRIPT_PATH") | crontab -
+else
+    echo -e "${GREEN}Kein bestehender Cronjob für das Skript gefunden.${RESET}"
+fi
+
 # Cron-Zeit abfragen
 ask_cron_time
 
-# Cronjob hinzufügen
+# Neuen/aktualisierten Cronjob hinzufügen
 CRON_JOB="$MINUTE $HOUR $DAY $MONTH $WEEKDAY $SCRIPT_PATH"
 (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
 
-echo -e "${GREEN}Cronjob wurde hinzugefügt:${RESET}"
+echo -e "${GREEN}Cronjob wurde hinzugefügt oder aktualisiert:${RESET}"
 echo "$CRON_JOB"
