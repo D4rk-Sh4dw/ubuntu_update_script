@@ -67,28 +67,20 @@ echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gp
 log "Aktualisiere apt Paketlisten..."
 sudo apt-get update --allow-releaseinfo-change 2>&1 | tee -a "$LOG_FILE"
 
-# Automatische Konfiguration für Unifi Backup-Frage setzen (wird keine Rückfrage mehr stellen)
-log "Setze automatische Konfiguration für Unifi..."
+# Konfiguration für Unifi Backup-Frage setzen
+log "Setze automatische Konfiguration für Unifi-Upgrade..."
 echo "unifi unifi/has_backup boolean true" | sudo debconf-set-selections
-
-# Entferne Liveansicht bei Unifi Installation/Upgrade
-log "Deaktiviere Liveansicht für Unifi-Installation/Upgrade..."
 
 # Upgrade der Pakete
 log "Führe apt upgrade aus..."
 sudo apt upgrade -y -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" 2>&1 | tee -a "$LOG_FILE"
 
-# Optional: MongoDB 7.0 installieren (falls nicht bereits vorhanden)
-log "Prüfe auf MongoDB 7.0 Installation..."
-if ! dpkg -l | grep -q "mongodb-org"; then
-    log "Installiere MongoDB 7.0..."
-    sudo apt-get install -y mongodb-org 2>&1 | tee -a "$LOG_FILE"
-else
-    log "MongoDB 7.0 ist bereits installiert."
-fi
+# Unifi-Upgrade prüfen und durchführen
+log "Führe Unifi-Upgrade durch..."
+sudo apt-get install --only-upgrade -y unifi 2>&1 | tee -a "$LOG_FILE"
 
-# Unifi-Upgrade prüfen und erzwingen
-log "Prüfe auf Unifi-Updates..."
-sudo apt-get install --only-upgrade -y unifi -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" 2>&1 | tee -a "$LOG_FILE"
+# Unifi-Dienst neu starten
+log "Starte Unifi-Dienst neu..."
+sudo service unifi restart 2>&1 | tee -a "$LOG_FILE"
 
 log "Update-Skript abgeschlossen!"
