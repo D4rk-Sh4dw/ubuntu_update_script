@@ -38,7 +38,7 @@ echo -e "${GREEN}cron-Dienst ist gestartet und aktiviert.${RESET}"
 
 # Skript herunterladen
 echo -e "${GREEN}Herunterladen des Skripts von GitHub...${RESET}"
-if curl -o "$SCRIPT_PATH" -L "$GITHUB_URL"; then
+if wget -O "$SCRIPT_PATH" "$GITHUB_URL"; then
     echo -e "${GREEN}Skript erfolgreich heruntergeladen nach $SCRIPT_PATH${RESET}"
 else
     echo -e "${RED}Fehler beim Herunterladen des Skripts!${RESET}"
