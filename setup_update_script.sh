@@ -19,6 +19,13 @@ function ask_cron_time() {
     read -p "Wochentag (0-7, wobei 0 und 7 für Sonntag stehen, * für jeden Tag): " WEEKDAY
 }
 
+# System bereinigen
+echo -e "${GREEN}Führe apt clean aus, um den lokalen Paket-Cache zu bereinigen...${RESET}"
+sudo apt clean -y
+
+echo -e "${GREEN}Führe apt autoremove aus, um nicht mehr benötigte Pakete zu entfernen...${RESET}"
+sudo apt autoremove -y
+
 # Prüfen, ob cron installiert ist
 echo -e "${GREEN}Prüfe, ob cron installiert ist...${RESET}"
 if ! dpkg -l | grep -q "^ii.*cron"; then
